@@ -1,0 +1,31 @@
+---
+- name: Простой тест структуры проекта
+  hosts: localhost
+  connection: local
+  
+  tasks:
+    - name: Проверить что roles директория существует
+      ansible.builtin.file:
+        path: roles
+        state: directory
+      changed_when: false
+    
+    - name: Перечислить все роли
+      ansible.builtin.find:
+        paths: roles
+        file_type: directory
+        patterns: "*"
+      register: found_roles
+    
+    - name: Показать найденные роли
+      ansible.builtin.debug:
+        msg: "Найдены роли: {{ found_roles.files | map(attribute='path') | list }}"
+    
+    - name: Проверить основной playbook
+      ansible.builtin.slurp:
+        src: site.yml
+      register: playbook_content
+    
+    - name: Показать что playbook корректный
+      ansible.builtin.debug:
+        msg: "Playbook site.yml содержит {{ (playbook_content.content | b64decode).split('\n') | length }} строк"

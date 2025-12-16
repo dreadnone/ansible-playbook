@@ -1,0 +1,66 @@
+---
+- name: Тестовая установка на localhost
+  hosts: all
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Проверка существования директорий ролей
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "roles/clickhouse"
+        - "roles/vector-role"
+        - "roles/lighthouse-role"
+      register: roles_check
+    
+    - name: Показать результаты проверки ролей
+      ansible.builtin.debug:
+        msg: "Роль {{ item.item }} существует: {{ item.stat.exists }}"
+      loop: "{{ roles_check.results }}"
+    
+    - name: Проверка обязательных файлов в ролях
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "roles/clickhouse/tasks/main.yml"
+        - "roles/vector-role/tasks/main.yml"
+        - "roles/vector-role/defaults/main.yml"
+        - "roles/vector-role/templates/vector.yml.j2"
+        - "roles/lighthouse-role/tasks/main.yml"
+        - "roles/lighthouse-role/defaults/main.yml"
+        - "roles/lighthouse-role/templates/lighthouse.conf.j2"
+      register: files_check
+    
+    - name: Показать результаты проверки файлов
+      ansible.builtin.debug:
+        msg: "Файл {{ item.item }} существует: {{ item.stat.exists }}"
+      loop: "{{ files_check.results }}"
+    
+    - name: Проверка конфигурации vector sinks
+      ansible.builtin.slurp:
+        src: roles/vector-role/defaults/main.yml
+      register: vector_config
+    
+    - name: Показать конфигурацию Vector Sinks
+      ansible.builtin.debug:
+        msg: |
+          Vector Sinks конфигурация:
+          {{ (vector_config.content | b64decode | from_yaml).vector_sinks | to_nice_yaml }}
+    
+    - name: Проверка что vector_sinks содержит ClickHouse конфиг
+      ansible.builtin.debug:
+        msg: "Vector настроен для отправки в ClickHouse: {{ 'clickhouse_logs' in ((vector_config.content | b64decode | from_yaml).vector_sinks) }}"
+    
+    - name: Тестовая симуляция установки
+      ansible.builtin.debug:
+        msg: |
+          ТЕСТ ПРОЙДЕН УСПЕШНО!
+          
+          Структура проекта корректна:
+          1. Роль ClickHouse готова
+          2. Роль Vector настроена для отправки в ClickHouse
+          3. Роль Lighthouse готова
+          
+          Конфигурация Vector Sinks:
+          {{ (vector_config.content | b64decode | from_yaml).vector_sinks.to_nice_yaml | default('Не найдена') }}

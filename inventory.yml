@@ -1,0 +1,17 @@
+---
+all:
+  children:
+    clickhouse:
+      hosts:
+        localhost:
+          ansible_connection: local
+    
+    vector:
+      hosts:
+        localhost:
+          ansible_connection: local
+    
+    lighthouse:
+      hosts:
+        localhost:
+          ansible_connection: local

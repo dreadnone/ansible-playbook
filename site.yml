@@ -1,0 +1,34 @@
+---
+- name: Установка ClickHouse
+  hosts: clickhouse
+  gather_facts: yes
+  roles:
+    - clickhouse
+  vars:
+    clickhouse_version: "22.3.3.44"
+    clickhouse_remove_data: false  # Не удалять данные при переустановке
+
+- name: Установка Vector
+  hosts: vector
+  gather_facts: yes
+  roles:
+    - role: vector-role
+  vars:
+    clickhouse_host: "localhost"
+    vector_sinks:
+      to_clickhouse:
+        type: clickhouse
+        inputs: ["system_logs", "demo_metrics"]
+        host: "localhost"
+        port: 8123
+        database: "monitoring"
+        table: "logs"
+
+- name: Установка Lighthouse
+  hosts: lighthouse
+  gather_facts: yes
+  roles:
+    - role: lighthouse-role
+  vars:
+    lighthouse_server_name: "localhost"
+    lighthouse_port: 8080
