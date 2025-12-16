@@ -1,0 +1,89 @@
+---
+- name: Install and configure infrastructure
+  hosts: all
+  gather_facts: yes
+  vars_files:
+    - group_vars/vars.yml
+
+  pre_tasks:
+    - name: Update package cache (Debian)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      tags: always
+
+    - name: Update package cache (RHEL)
+      ansible.builtin.yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+      tags: always
+
+- name: Install NGINX
+  hosts: lighthouse
+  become: yes
+  tasks:
+    - name: Install NGINX
+      ansible.builtin.package:
+        name: nginx
+        state: present
+      tags: nginx
+
+    - name: Ensure NGINX is started and enabled
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      tags: nginx
+
+- name: Install and configure Lighthouse
+  hosts: lighthouse
+  become: yes
+  roles:
+    - role: lighthouse
+      vars:
+        lighthouse_web_root: "{{ lighthouse_web_root }}"
+        lighthouse_repo_url: "{{ lighthouse_repo_url }}"
+        lighthouse_repo_version: "{{ lighthouse_repo_version }}"
+        nginx_server_name: "{{ nginx_server_name }}"
+        nginx_listen_port: "{{ nginx_listen_port }}"
+  tags: lighthouse
+
+- name: Install ClickHouse
+  hosts: clickhouse
+  become: yes
+  roles:
+    - role: clickhouse
+      vars:
+        clickhouse_version: "{{ clickhouse_version }}"
+        clickhouse_packages: "{{ clickhouse_packages }}"
+  tags: clickhouse
+
+- name: Install and configure Vector
+  hosts: vector
+  become: yes
+  roles:
+    - role: vector
+      vars:
+        vector_version: "{{ vector_version }}"
+        vector_config_dir: "{{ vector_config_dir }}"
+        vector_data_dir: "{{ vector_data_dir }}"
+        clickhouse_host: "{{ hostvars['clickhouse']['ansible_host'] }}"
+        vector_sinks: "{{ vector_sinks }}"
+  tags: vector
+
+- name: Verify services
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Display installation summary
+      ansible.builtin.debug:
+        msg: |
+          Installation completed on:
+          - ClickHouse: {{ hostvars['clickhouse']['ansible_host'] }}:8123
+          - Vector: {{ hostvars['vector']['ansible_host'] }}:8686
+          - Lighthouse: http://{{ hostvars['lighthouse']['ansible_host'] }}:{{ nginx_listen_port }}
+          
+          Vector is configured to send data to ClickHouse at {{ hostvars['clickhouse']['ansible_host'] }}:8123
+      tags: always

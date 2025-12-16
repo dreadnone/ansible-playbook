@@ -1,0 +1,37 @@
+---
+# Общие настройки
+ansible_python_interpreter: /usr/bin/python3
+
+# ClickHouse settings
+clickhouse_version: "22.3.3.44"
+clickhouse_packages:
+  - clickhouse-client
+  - clickhouse-server
+  - clickhouse-common-static
+
+# Vector settings
+vector_version: "0.34.0"
+vector_config_dir: "/etc/vector"
+vector_data_dir: "/var/lib/vector"
+
+# Vector sinks configuration for ClickHouse
+vector_sinks:
+  clickhouse_logs:
+    type: clickhouse
+    inputs:
+      - system_logs
+      - demo_metrics
+    host: "{{ clickhouse_host }}"
+    port: 8123
+    database: "logs"
+    table: "vector_data"
+    skip_unknown_fields: true
+
+# Lighthouse settings
+lighthouse_repo_url: "https://github.com/VKCOM/lighthouse.git"
+lighthouse_repo_version: "master"
+lighthouse_web_root: "/usr/share/nginx/lighthouse"
+
+# NGINX settings
+nginx_server_name: "monitoring.local"
+nginx_listen_port: 80
