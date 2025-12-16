@@ -1,0 +1,18 @@
+---
+clickhouse:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_host: localhost
+
+vector:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_host: localhost
+
+lighthouse:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_host: localhost

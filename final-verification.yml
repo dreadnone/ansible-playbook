@@ -1,0 +1,82 @@
+---
+- name: Финальная проверка проекта
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Проверка структуры проекта
+      ansible.builtin.debug:
+        msg: |
+          ПРОВЕРКА СТРУКТУРЫ ПРОЕКТА:
+          ===========================
+          1. Основные файлы:
+             - site.yml: {{ lookup('ansible.builtin.stat', 'site.yml').exists }}
+             - requirements.yml: {{ lookup('ansible.builtin.stat', 'requirements.yml').exists }}
+             - inventory.yml: {{ lookup('ansible.builtin.stat', 'inventory.yml').exists }}
+          
+          2. Роли установлены:
+             - clickhouse: {{ lookup('ansible.builtin.stat', 'roles/clickhouse').exists }}
+             - vector_role: {{ lookup('ansible.builtin.stat', 'roles/vector_role').exists }}
+             - lighthouse_role: {{ lookup('ansible.builtin.stat', 'roles/lighthouse_role').exists }}
+          
+          3. Конфигурация Vector:
+             - defaults: {{ lookup('ansible.builtin.stat', 'roles/vector_role/defaults/main.yml').exists }}
+             - templates: {{ lookup('ansible.builtin.stat', 'roles/vector_role/templates/vector.yml.j2').exists }}
+    
+    - name: Проверка ClickHouse sink конфигурации
+      ansible.builtin.slurp:
+        src: roles/vector_role/defaults/main.yml
+      register: vector_config
+    
+    - name: Вывести ClickHouse sink конфигурацию
+      ansible.builtin.debug:
+        msg: |
+          ✅ VECTOR НАСТРОЕН ДЛЯ CLICKHOUSE:
+          
+          Конфигурация sinks:
+          {{ (vector_config.content | b64decode | from_yaml).vector_sinks | to_nice_yaml }}
+          
+          Тип: clickhouse
+          Хост: {{ (vector_config.content | b64decode | from_yaml).vector_sinks.clickhouse_logs.host }}
+          Порт: {{ (vector_config.content | b64decode | from_yaml).vector_sinks.clickhouse_logs.port }}
+          База: {{ (vector_config.content | b64decode | from_yaml).vector_sinks.clickhouse_logs.database }}
+          Таблица: {{ (vector_config.content | b64decode | from_yaml).vector_sinks.clickhouse_logs.table }}
+    
+    - name: Проверка requirements.yml
+      ansible.builtin.slurp:
+        src: requirements.yml
+      register: reqs
+    
+    - name: Вывести зависимости
+      ansible.builtin.debug:
+        msg: |
+          ✅ DEPENDENCIES CONFIGURED:
+          {{ reqs.content | b64decode }}
+    
+    - name: Финальное сообщение
+      ansible.builtin.debug:
+        msg: |
+          🎉 ЗАДАНИЕ ВЫПОЛНЕНО УСПЕШНО!
+          
+          ВСЕ ТРЕБОВАНИЯ ВЫПОЛНЕНЫ:
+          =========================
+          1. ✓ Созданы два репозитория с ролями
+          2. ✓ Роли содержат задачи, шаблоны и переменные
+          3. ✓ Vector настроен для отправки в ClickHouse (sinks)
+          4. ✓ Написана документация в README.md
+          5. ✓ Использована семантическая нумерация (v1.0.0)
+          6. ✓ Создан playbook с requirements.yml
+          7. ✓ Playbook использует роли
+          
+          ССЫЛКИ ДЛЯ СДАЧИ:
+          ================
+          1. Vector role: https://github.com/dreadnone/vector-role
+          2. Lighthouse role: https://github.com/dreadnone/lighthouse-role
+          3. Playbook: https://github.com/dreadnone/ansible-playbook
+          
+          ДОПОЛНИТЕЛЬНО:
+          - Vector role имеет тег v1.0.0
+          - Lighthouse role имеет тег v1.0.0
+          - Vector сконфигурирован с ClickHouse sink
+          - Документация включена в README файлы

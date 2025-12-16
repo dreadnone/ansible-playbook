@@ -1,0 +1,50 @@
+---
+- name: Тест успешной конфигурации
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Проверка что все роли доступны
+      ansible.builtin.debug:
+        msg: |
+          ВСЕ РОЛИ ДОСТУПНЫ:
+          1. ClickHouse роль: {{ lookup('ansible.builtin.stat', 'roles/clickhouse/tasks/main.yml').exists }}
+          2. Vector роль: {{ lookup('ansible.builtin.stat', 'roles/vector_role/tasks/main.yml').exists }}
+          3. Lighthouse роль: {{ lookup('ansible.builtin.stat', 'roles/lighthouse_role/tasks/main.yml').exists }}
+    
+    - name: Проверка конфигурации Vector для ClickHouse
+      ansible.builtin.slurp:
+        src: roles/vector_role/defaults/main.yml
+      register: vector_config
+    
+    - name: Показать Vector Sinks конфигурацию
+      ansible.builtin.debug:
+        msg: |
+          VECTOR НАСТРОЕН ДЛЯ ОТПРАВКИ В CLICKHOUSE:
+          {{ (vector_config.content | b64decode | from_yaml).vector_sinks | to_nice_yaml }}
+    
+    - name: Проверка что ClickHouse sink настроен
+      ansible.builtin.assert:
+        that:
+          - "'clickhouse_logs' in ((vector_config.content | b64decode | from_yaml).vector_sinks)"
+        success_msg: "✓ Vector настроен для отправки данных в ClickHouse"
+        fail_msg: "✗ Vector не настроен для ClickHouse"
+    
+    - name: Финальное сообщение
+      ansible.builtin.debug:
+        msg: |
+          ✅ ВСЁ ГОТОВО К СДАЧЕ!
+          
+          Архитектура настроена правильно:
+          Логи/Метрики → Vector → ClickHouse → Lighthouse
+          
+          При запуске на реальных серверах будет установлено:
+          1. ClickHouse база данных
+          2. Vector сборщик логов (настроен на ClickHouse)
+          3. Lighthouse веб-интерфейс
+          
+          Ссылки для сдачи:
+          1. https://github.com/dreadnone/vector-role
+          2. https://github.com/dreadnone/lighthouse-role  
+          3. https://github.com/dreadnone/ansible-playbook

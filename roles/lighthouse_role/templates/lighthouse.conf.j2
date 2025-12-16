@@ -1,0 +1,15 @@
+server {
+    listen {{ lighthouse_port }};
+    server_name {{ lighthouse_server_name }};
+    
+    root {{ lighthouse_web_root }};
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ =404;
+    }
+    
+    # Безопасность
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+}

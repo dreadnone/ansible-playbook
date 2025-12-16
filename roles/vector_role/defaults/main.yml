@@ -1,0 +1,37 @@
+---
+vector_version: "0.34.0"
+vector_config_dir: "/etc/vector"
+vector_data_dir: "/var/lib/vector"
+vector_api_port: 8686
+vector_api_enabled: true
+
+# Источники данных (sources)
+vector_sources:
+  system_logs:
+    type: file
+    include: ["/var/log/messages", "/var/log/syslog"]
+    read_from: beginning
+
+  demo_metrics:
+    type: demo_logs
+    format: shuffle
+    interval: 10
+
+# Назначения данных (sinks)
+vector_sinks:
+  clickhouse_logs:
+    type: clickhouse
+    inputs:
+      - system_logs
+      - demo_metrics
+    host: "{{ clickhouse_host | default('localhost') }}"
+    port: 8123
+    database: "logs"
+    table: "system_data"
+    skip_unknown_fields: true
+
+  debug_output:
+    type: console
+    inputs: ["demo_metrics"]
+    encoding:
+      codec: json

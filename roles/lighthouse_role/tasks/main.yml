@@ -1,0 +1,41 @@
+---
+- name: Установка необходимых пакетов
+  ansible.builtin.package:
+    name:
+      - git
+      - nginx
+    state: present
+
+- name: Создание корневой директории веб-сервера
+  ansible.builtin.file:
+    path: "{{ lighthouse_web_root }}"
+    state: directory
+    mode: '0755'
+
+- name: Клонирование репозитория Lighthouse
+  ansible.builtin.git:
+    repo: "{{ lighthouse_repo_url }}"
+    dest: "{{ lighthouse_web_root }}"
+    version: "{{ lighthouse_repo_version }}"
+    force: yes
+  notify: restart nginx
+
+- name: Настройка конфигурации NGINX
+  ansible.builtin.template:
+    src: lighthouse.conf.j2
+    dest: /etc/nginx/conf.d/lighthouse.conf
+    mode: '0644'
+  notify: restart nginx
+
+- name: Удаление дефолтного конфига NGINX
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  notify: restart nginx
+
+- name: Включение и запуск NGINX
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: yes
+    daemon_reload: yes

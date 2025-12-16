@@ -1,0 +1,14 @@
+---
+# Конфигурация API
+api:
+  enabled: {{ vector_api_enabled }}
+  address: "0.0.0.0:{{ vector_api_port }}"
+  playground: false
+
+# Источники данных (откуда брать)
+sources:
+{{ vector_sources | to_nice_yaml(indent=2) | indent(2) }}
+
+# Назначения данных (куда отправлять)
+sinks:
+{{ vector_sinks | to_nice_yaml(indent=2) | indent(2) }}
